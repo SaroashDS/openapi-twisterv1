@@ -5,10 +5,7 @@ All the conversion happens on the browser itself hence the collection data is co
 
 ## ✨ Demo
 #### Convert collection JSON file to OpenAPI schema
-![Convert JSON file](./public/convert-collection-file.gif)
-
-#### Convert collection via URL to OpenAPI schema
-![Convert url](./public/convert-collection-url.gif)
+![Convert JSON file](./public/images/Homepage.PNG)
 
 
 ### Installation
