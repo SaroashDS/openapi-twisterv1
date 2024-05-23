@@ -12,7 +12,7 @@ All the conversion happens on the browser itself hence the collection data is co
 
 
 ### Installation
-1. Clone this repo: `git clone https://github.com/DefCon-007/postman-to-openapi-online.git`
+1. Clone this repo: `git clone https://github.com/SaroashDS/openapi-twisterv1.git`
 2. Use supported node version by `nvm use`
 3. Navigate to the directory and run `npm install`
 4. Run `npm run dev`
