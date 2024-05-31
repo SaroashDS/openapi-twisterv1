@@ -5,7 +5,7 @@ import Header from "../components/Header"
 import Main from "../components/Main"
 import Footer from "../components/Footer"
 
-const baseUrl = 'https://p2o.defcon007.com',
+const baseUrl = 'http://localhost:3000/',
     newTitle = 'TWIST : P to OA',
     newDescription = '...';
 
