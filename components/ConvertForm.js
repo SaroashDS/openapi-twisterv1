@@ -17,80 +17,64 @@ function ConvertForm(props) {
     updateConvertedSchema = props.updateConvertedSchema,
     posthog = usePostHog();
 
-  const handleFormSubmit = (event) => {
-    try {
-      event.preventDefault(); // don't redirect the page
+  const handleFormSubmit = async (event) => {
+    event.preventDefault(); // don't redirect the page
 
-      const collectionFile = event.target['collection-file'].files,
-        collectionUrl = event.target['collection-url'].value;
+    const collectionFiles = event.target['collection-file'].files;
 
-      if (collectionFile.length > 0) {
-        // User uploaded a file, parse from it
-        const reader = new FileReader()
-        reader.onload = async (e) => {
-          try {
-            const text = postmanToOpenApi(e.target.result)
-            updateConvertedSchema(text);
-          } catch (err) {
-            toast.error(<div>{PARSING_ERROR}<br /><br />{err.message}</div>);
-            Sentry.captureException(err);
-          }
-
-        };
-        reader.readAsText(collectionFile[0])
-
-        posthog.capture(
-          'collection_converted',
-          {
-            type: 'file_upload'
-          }
-        );
-
-      } else if (collectionUrl.length > 0) {
-        // User added a URL, fetch from it
+    if (collectionFiles.length > 0) {
+      try {
         setFetchingCollection(true);
 
-        fetch(collectionUrl)
-          .then((res) => res.json())
-          .then((collectionData) => {
+        const convertedFiles = [];
+
+        for (let i = 0; i < collectionFiles.length; i++) {
+          const file = collectionFiles[i];
+          const reader = new FileReader();
+
+          reader.onload = async (e) => {
             try {
-              const openApiSchema = postmanToOpenApi(collectionData)
-              updateConvertedSchema(openApiSchema);
+              const text = await postmanToOpenApi(e.target.result);
+              const blob = new Blob([text], { type: 'application/x-yaml' });
+              const url = URL.createObjectURL(blob);
+              convertedFiles.push({ name: file.name.replace('.json', '.yaml'), url });
+
+              if (convertedFiles.length === collectionFiles.length) {
+                setFetchingCollection(false);
+                //updateConvertedSchema(convertedFiles);
+                downloadFiles(convertedFiles);
+              }
             } catch (err) {
               toast.error(<div>{PARSING_ERROR}<br /><br />{err.message}</div>);
               Sentry.captureException(err);
-            } finally {
               setFetchingCollection(false);
             }
+          };
 
-          })
-          .catch(((err) => {
-            setFetchingCollection(false);
+          reader.readAsText(file);
+        }
 
-            toast.error(INVALID_URL);
-            Sentry.captureException(err);
-          }))
-
-        posthog.capture('collection_converted',
-          {
-            type: 'url'
-          }
-        );
-
-      } else {
-        toast.error(EMPTY_FORM_SUBMIT);
-
-        posthog.capture(
-          'empty_convert_clicked',
-          {}
-        );
+        posthog.capture('collection_converted', { type: 'file_upload' });
+      } catch (err) {
+        setFetchingCollection(false);
+        toast.error(GENERAL_ERROR);
+        Sentry.captureException(err);
       }
-    } catch (err) {
-      setFetchingCollection(false);
-
-      toast.error(GENERAL_ERROR);
-      Sentry.captureException(err);
+    } else {
+      toast.error(EMPTY_FORM_SUBMIT);
+      posthog.capture('empty_convert_clicked', {});
     }
+  };
+
+  const downloadFiles = (files) => {
+    files.forEach(file => {
+      const link = document.createElement('a');
+      link.href = file.url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
   };
 
   if (fetchingCollection) {
@@ -101,17 +85,8 @@ function ConvertForm(props) {
     <>
       <form onSubmit={handleFormSubmit}>
         <div className='field'>
-          <label htmlFor='collection-url'>Collection URL</label>
-          <input type='url' name='collection-url' id='collection-url' placeholder='https://www.postman.com/collections/<COLLECTION-ID>' />
-        </div>
-
-        <br />
-        <HorizontalLineText text='OR' />
-        <br />
-
-        <div className='field'>
-          <label htmlFor='collection-file'>Collection File</label>
-          <input type='file' name='collection-file' id='collection-file' accept='.json,application/json' />
+          <label htmlFor='collection-file'>Collection Files</label>
+          <input type='file' name='collection-file' id='collection-file' accept='.json,application/json' multiple />
         </div>
 
         <ul className='actions'>
@@ -123,4 +98,4 @@ function ConvertForm(props) {
   );
 }
 
-export default ConvertForm
+export default ConvertForm;
