@@ -14,7 +14,7 @@ const JSON_FILE_ERROR = 'Unable to parse uploaded collection JSON. Please check 
 
 function ConvertForm(props) {
   const [fetchingCollection, setFetchingCollection] = useState(false),
-    updateConvertedSchema = props.updateConvertedSchema,
+    [convertedFiles, setConvertedFiles] = useState([]),
     posthog = usePostHog();
 
   const handleFormSubmit = async (event) => {
@@ -26,7 +26,7 @@ function ConvertForm(props) {
       try {
         setFetchingCollection(true);
 
-        const convertedFiles = [];
+        const newConvertedFiles = [];
 
         for (let i = 0; i < collectionFiles.length; i++) {
           const file = collectionFiles[i];
@@ -37,12 +37,11 @@ function ConvertForm(props) {
               const text = await postmanToOpenApi(e.target.result);
               const blob = new Blob([text], { type: 'application/x-yaml' });
               const url = URL.createObjectURL(blob);
-              convertedFiles.push({ name: file.name.replace('.json', '.yaml'), url });
+              newConvertedFiles.push({ name: file.name.replace('.json', '.yaml'), url });
 
-              if (convertedFiles.length === collectionFiles.length) {
+              if (newConvertedFiles.length === collectionFiles.length) {
                 setFetchingCollection(false);
-                //updateConvertedSchema(convertedFiles);
-                downloadFiles(convertedFiles);
+                setConvertedFiles(newConvertedFiles);
               }
             } catch (err) {
               toast.error(<div>{PARSING_ERROR}<br /><br />{err.message}</div>);
@@ -66,23 +65,34 @@ function ConvertForm(props) {
     }
   };
 
-  const downloadFiles = (files) => {
-    files.forEach(file => {
-      const link = document.createElement('a');
-      link.href = file.url;
-      link.download = file.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
+  const downloadFile = (url, name) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (fetchingCollection) {
-    return <Loader text='Fetching collection' />
+    return <Loader text='Fetching collection' />;
   }
 
   return (
     <>
+      {convertedFiles.length > 0 && (
+        <div className='converted-files'>
+          <h3>Download Converted Files:</h3>
+          <ul>
+            {convertedFiles.map(file => (
+              <li key={file.name} style={{padding:10}}>
+                <button onClick={() => downloadFile(file.url, file.name)}>{file.name}</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <form onSubmit={handleFormSubmit}>
         <div className='field'>
           <label htmlFor='collection-file'>Collection Files</label>
@@ -90,7 +100,7 @@ function ConvertForm(props) {
         </div>
 
         <ul className='actions'>
-          <li><input type='submit' value='Submit' className='special' /></li>
+          <li><input type='submit' value='Submit' className='special'/></li>
           <li><input type="reset" value="Reset" /></li>
         </ul>
       </form>
